@@ -31,7 +31,6 @@ function getit($cmd) {
 if (isset($_POST['action'])) { // ACTIONS (COMMANDS) //
     $action = $_POST['action'];
     $class  = $_POST['class'];
-    print_r($_POST);
     echo "<h2>".$classes[$class]." $action</h2><pre>";
     if ($action=='config') { // go through the POST and configure MPM
         $sww = false;

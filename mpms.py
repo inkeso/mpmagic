@@ -192,7 +192,7 @@ class MagicHandler(socketserver.BaseRequestHandler):
     def handle(self): 
         s = self.request.recv(1024).strip()
         if len(s) > 0:
-            self.request.send((cmddsp.onecmd(s.decode())+"\n").encode())
+            self.request.send((str(cmddsp.onecmd(s.decode()))+"\n").encode())
 
 if __name__ == "__main__":
     cmddsp = CommandDispatcher()

@@ -31,13 +31,14 @@ function getit($cmd) {
 if (isset($_POST['action'])) { // ACTIONS (COMMANDS) //
     $action = $_POST['action'];
     $class  = $_POST['class'];
+    print_r($_POST);
     echo "<h2>".$classes[$class]." $action</h2><pre>";
     if ($action=='config') { // go through the POST and configure MPM
         $sww = false;
         foreach ($_POST as $key => $val) {
             if (get_magic_quotes_gpc())
                 $val = stripslashes($val);
-            if (preg_match("/^[sbn][FABDEIKMPS][a-z]+[DFLPMSU]?[a-z]+$/", $key)) {
+            if (!preg_match("/^(action|class)$/", $key)) {
                 $resi = getit("$action $class $key $val");
                 if ($resi != "True\n") $sww = true;
                 echo "set $key to $val: <b style=\"color:".($resi=="True\n"?"green":"red").";\">$resi</b>";

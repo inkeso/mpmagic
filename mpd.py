@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 # Python MPD client library
 # Copyright (C) 2008  J. Alexander Treuman <jat@spatialrift.net>
 #
@@ -141,7 +144,7 @@ class MPDClient(object):
         self._commandlist.append(retval)
 
     def _writeline(self, line):
-        self._wfile.write("%s\n" % line)
+        self._wfile.write(("%s\n" % line).encode())
         self._wfile.flush()
 
     def _writecommand(self, command, args=[]):
@@ -151,7 +154,7 @@ class MPDClient(object):
         self._writeline(" ".join(parts))
 
     def _readline(self):
-        line = self._rfile.readline()
+        line = self._rfile.readline().decode()
         if not line.endswith("\n"):
             raise ConnectionError("Connection lost while reading line")
         line = line.rstrip("\n")
@@ -181,23 +184,19 @@ class MPDClient(object):
         while item:
             yield item
             item = self._readitem(separator)
-        raise StopIteration
 
     def _readlist(self):
         seen = None
         for key, value in self._readitems():
             if key != seen:
                 if seen is not None:
-                    raise ProtocolError("Expected key '%s', got '%s'" %
-                                        (seen, key))
+                    raise ProtocolError("Expected key '%s', got '%s'" % (seen, key))
                 seen = key
             yield value
-        raise StopIteration
 
     def _readplaylist(self):
         for key, value in self._readitems(":"):
             yield value
-        raise StopIteration
 
     def _readobjects(self, delimiters=[]):
         obj = {}
@@ -207,7 +206,7 @@ class MPDClient(object):
                 if key in delimiters:
                     yield obj
                     obj = {}
-                elif obj.has_key(key):
+                elif key in obj:
                     if not isinstance(obj[key], list):
                         obj[key] = [obj[key], value]
                     else:
@@ -216,14 +215,12 @@ class MPDClient(object):
             obj[key] = value
         if obj:
             yield obj
-        raise StopIteration
 
     def _readcommandlist(self):
         for retval in self._commandlist:
             yield retval()
         self._commandlist = None
         self._getnone()
-        raise StopIteration
 
     def _wrapiterator(self, iterator):
         if not self.iterate:
@@ -272,7 +269,7 @@ class MPDClient(object):
         return self._wrapiterator(self._readcommandlist())
 
     def _hello(self):
-        line = self._rfile.readline()
+        line = self._rfile.readline().decode()
         if not line.endswith("\n"):
             raise ConnectionError("Connection lost while reading MPD hello")
         line = line.rstrip("\n")
@@ -302,7 +299,7 @@ class MPDClient(object):
             try:
                 self._sock = socket.socket(af, socktype, proto)
                 self._sock.connect(sa)
-            except socket.error, msg:
+            except socket.error as msg:
                 if self._sock:
                     self._sock.close()
                 self._sock = None
@@ -340,5 +337,3 @@ class MPDClient(object):
 def escape(text):
     return text.replace("\\", "\\\\").replace('"', '\\"')
 
-
-# vim: set expandtab shiftwidth=4 softtabstop=4 textwidth=79:

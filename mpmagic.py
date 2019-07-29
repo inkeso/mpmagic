@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -15,8 +15,8 @@ DEBUG=True
 def tobool(what):
     try:
         ws = str(what).upper()
-    except Exception, e:
-        if DEBUG: print e
+    except Exception as e:
+        if DEBUG: print(e)
     if ws in ("YES", "ON",  "1", "T", "TRUE",  "ENABLE" ): return True
     if ws in ("NO",  "OFF", "0", "F", "FALSE", "DISABLE"): return False
     return None
@@ -84,8 +84,8 @@ class AutoPlaylist(threading.Thread):
             verilen = int(self.mc.stats()["songs"])
             listall = self.mc.listall()
             self.mc.disconnect()
-        except Exception, e:
-            print "apl.fillpool:", e
+        except Exception as e:
+            print("apl.fillpool:", e)
             return False
         blc = 0
         black = re.compile(self.__config["blacklist"])
@@ -103,7 +103,7 @@ class AutoPlaylist(threading.Thread):
         self.__config["remain"] = len(self.__tPool)
         #self.__config["blacklist"] = blc
         self.__config["blacklistlen"] = blc
-        if DEBUG: print "apl.fillpool:", len(self.__tPool), "songs"
+        if DEBUG: print("apl.fillpool:", len(self.__tPool), "songs")
         return (verilen == blc + len(self.__tPool))
 
     def run(self):
@@ -120,12 +120,12 @@ class AutoPlaylist(threading.Thread):
             s = { "playlistlength": -1, "song": -1}
 
             try:    self.mc.connect(*self.MPD_CONNECTION)
-            except Exception, e:
-                print "apl.connect:", e
+            except Exception as e:
+                print("apl.connect:", e)
 
             try:    s = self.mc.status()
-            except Exception, e:
-                print "apl.status:", e
+            except Exception as e:
+                print("apl.status:", e)
             ll = int(s["playlistlength"])
             cs = 0 # try, because there may be no song attribute.
             try:    cs = int(s["song"])
@@ -135,8 +135,8 @@ class AutoPlaylist(threading.Thread):
             if poolen == 0:
                 try:
                     self.fillPool()
-                except Exception, e:
-                    print "apl.fillpool:", e
+                except Exception as e:
+                    print("apl.fillpool:", e)
                     continue
 
             if (cs >= 0) and (ll >= 0):
@@ -150,13 +150,13 @@ class AutoPlaylist(threading.Thread):
                     randomsong = self.__tPool.pop(randompool)
                     # try to add it to the playlist
                     try:
-                        if DEBUG: print "apl.add:", randomsong
+                        if DEBUG: print("apl.add:", randomsong)
                         nid = self.mc.addid(randomsong)
                         # successful? Than add to History (including timestamp) and ID to HistIds
                         self.__tHist.append((time.strftime("%a, %d. %b %Y %X"), randomsong))
                         self.__tHistIds.append(str(nid))
-                    except Exception, e:
-                        print "apl.add:", e, randomsong
+                    except Exception as e:
+                        print("apl.add:", e, randomsong)
                         # something went wrong, so just throw the song away.
                         # previously, it was added to the pool again, resulting in a never-empty
                         # pool of unavailable files.
@@ -171,16 +171,16 @@ class AutoPlaylist(threading.Thread):
                             self.__tHistIds.remove(did)
                         else: 
                             self.mc.delete(0)
-                except Exception, e: 
-                    print "apl.delete:", e
+                except Exception as e: 
+                    print("apl.delete:", e)
 
             # update counts
             self.__config["remain"] = poolen
             self.__config["played"] = len(self.__tHist)
 
             try:    self.mc.disconnect()
-            except Exception, e:
-                if DEBUG: print "apl.disconnect:", e
+            except Exception as e:
+                if DEBUG: print("apl.disconnect:", e)
 
 
 ### PLAY JINGLES ###
@@ -221,19 +221,19 @@ class Jingle(threading.Thread):
         return True
 
     def fade(self, inout="out"):
-        faderange = range(self.__config["fadedown"],
+        faderange = list(range(self.__config["fadedown"],
                           self.__config["fadeup"],
-                          self.__config["fadestep"])
+                          self.__config["fadestep"]))
         if inout == "out": faderange.reverse()
-        if DEBUG: print "jgl.fade:", inout, faderange
+        if DEBUG: print("jgl.fade:", inout, faderange)
         try:
             self.mc.connect(*self.MPD_CONNECTION)
             for vol in faderange:
                 self.mc.setvol(vol)
                 time.sleep(self.__config["fademsec"] / 100.0)
             self.mc.disconnect()
-        except Exception, e:
-            print ("jgl.fade(%s):" % inout), e
+        except Exception as e:
+            print(("jgl.fade(%s):" % inout), e)
 
     def fillPool(self):
         self.__tPool = []
@@ -268,16 +268,16 @@ class Jingle(threading.Thread):
                 s = { "time": "", "state": ""}
                 tl = 0x7fffff # seconds remaining in the song
                 try:    self.mc.connect(*self.MPD_CONNECTION)
-                except Exception, e:
-                    print "jgl.connect:", e
+                except Exception as e:
+                    print("jgl.connect:", e)
 
                 try:    s = self.mc.status()
-                except Exception, e:
-                    print "jgl.status:", e
+                except Exception as e:
+                    print("jgl.status:", e)
 
                 try:    self.mc.disconnect()
-                except Exception, e:
-                    print "jgl.disconnect:", e
+                except Exception as e:
+                    print("jgl.disconnect:", e)
 
                 try:
                     st = s["time"].split(":")
@@ -289,7 +289,7 @@ class Jingle(threading.Thread):
                 if tl <= self.__config["secsleft"] and s["state"] == "play":
                     self.fade("out")
                     os.system(pjing)
-                    if DEBUG: print "playing jingle", pjing
+                    if DEBUG: print("playing jingle", pjing)
                     self.fade("in")
                     jinged = True
 
@@ -337,20 +337,20 @@ class Monitor(threading.Thread):
             # connect to server, check songstatus
             s = lastsong
             try:    self.mc.connect(*self.MPD_CONNECTION)
-            except Exception, e:
-                print "mnt.connect:", e
+            except Exception as e:
+                print("mnt.connect:", e)
             
             try:
                 x = self.mc.currentsong()
                 autoadded = self.aplinstance and x["id"] in self.aplinstance.gethistids()
                 s = [x["file"], int(x["time"]), autoadded]
-            except Exception, e:
-                print "mnt.status:", e
+            except Exception as e:
+                print("mnt.status:", e)
             
             try:
                 self.mc.disconnect()
-            except Exception, e:
-                print "mnt.disconnect:", e
+            except Exception as e:
+                print("mnt.disconnect:", e)
             
             # different/new song?
             if lastsong[0] != s[0]:
@@ -358,14 +358,14 @@ class Monitor(threading.Thread):
                 # check if last song was skipped
                 if (lasttime + s[1]) > int(time.time() + self.__config["interval"]):
                     f.write("[SKIP]")
-                    if DEBUG: print "mnt.log: [SKIP]"
+                    if DEBUG: print("mnt.log: [SKIP]")
                 # write new song to log
                 f.write(time.strftime("\n[%a, %d. %b %Y %X]\t"))
                 f.write(("[HUMAN]", "[MAGIC]")[s[2]])
                 f.write("\t"+s[0]+"\t")
                 f.write(time.strftime("%H:%M:%S\t", time.gmtime(s[1])))
                 f.close()
-                if DEBUG: print "mnt.log:", s
+                if DEBUG: print("mnt.log:", s)
                 lastsong = s
                 lasttime = int(time.time())
         

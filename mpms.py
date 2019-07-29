@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -48,7 +48,7 @@ refill [apl|jgl]                   --  refill the file-pool (read MPD-filelist,
 pool [apl|jgl]                     --  print the filepool
 history [apl|mnt]                  --  print the apl-history (songs added to
                                        playlist)
-histroyids                         --  give a comma-seperated list of IDs of songs
+historyids                         --  give a comma-seperated list of IDs of songs
                                        added to the playlist by apl
 quit                               --  Quit / Kill the deamon
 
@@ -64,23 +64,23 @@ If you haven't netcat installed you could use telnet:
 (echo "status apl" ; sleep 1) | telnet 127.0.0.1 55443
 
 """
-import sys, os, re, SocketServer, cmd, ConfigParser, mpmagic
+import sys, os, re, socketserver, cmd, configparser, mpmagic
 
 ### READ CONFIG ###
 
 cffi = ["/etc/mpm.ini", 
         os.path.expanduser("~/.config/mpm/mpm.ini"), 
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "mpm.ini")]
-cfg = ConfigParser.SafeConfigParser()
+cfg = configparser.SafeConfigParser()
 if len(cfg.read(cffi)) == 0:
-    print "No configfile found in", " or ".join(cffi)
+    print("No configfile found in", " or ".join(cffi))
     exit (1)
 
 try:
     MAGIC_CONNECTION = (cfg.get("Service", "mpmhost"), cfg.getint("Service", "mpmport"))
     MPD_CONNECTION  =  (cfg.get("Service", "mpdhost"), cfg.getint("Service", "mpdport"))
-except Exception, e:
-    print "ERROR in config:", e
+except Exception as e:
+    print("ERROR in config:", e)
     exit (1)
 
 
@@ -96,28 +96,28 @@ class CommandDispatcher(cmd.Cmd):
 
         # create instances & load config
         for inst in (("apl", "AutoPlaylist"), ("jgl", "Jingle"), ("mnt", "Monitor")):
-            exec "self.%s = mpmagic.%s(MPD_CONNECTION)" % inst
-            print "Loading config for", inst[1]
+            exec("self.%s = mpmagic.%s(MPD_CONNECTION)" % inst)
+            print("Loading config for", inst[1])
             try:
                 for i in cfg.items(inst[1]): 
                     retv = eval("self."+inst[0]).validset(*i)
-                    print "Set %s to %s :" % i, retv
+                    print("Set %s to %s :" % i, retv)
                     if retv != True: exit(1)
-            except Exception, e:
-                print "ERROR in "+inst[1]+"-config:", e
+            except Exception as e:
+                print("ERROR in "+inst[1]+"-config:", e)
                 exit (1)
-            print
+            print()
         # special treatment: Monitor needs the APL-instance.
         self.mnt.aplinstance = self.apl
         
         # now start the 3 services
-        for inst in ("apl", "jgl", "mnt"): exec "self.%s.start()" % inst
+        for inst in ("apl", "jgl", "mnt"): exec("self.%s.start()" % inst)
 
     def do_status(self, which):
         r=""
         which = which.lower()
         if which in ("apl", "jgl", "mnt"):
-            for k,v in eval("self."+which).getconf().items():
+            for k,v in list(eval("self."+which).getconf().items()):
                 if k in self.booltab: k = self.booltab[k]
                 r+="%s\t%s\n" % (k, str(v))
         else:
@@ -178,7 +178,7 @@ class CommandDispatcher(cmd.Cmd):
         # but most likely, this is not needed.
         for inst in ("apl","jgl","mnt"): 
             eval("self."+inst).running = False
-        print "Shutting down..."
+        print("Shutting down...")
         server.shutdown()
         return "MPM terminated.";
     
@@ -188,15 +188,15 @@ class CommandDispatcher(cmd.Cmd):
 #################################################################################
 ## Server-Class
 #################################################################################
-class MagicHandler(SocketServer.BaseRequestHandler):
+class MagicHandler(socketserver.BaseRequestHandler):
     def handle(self): 
         s = self.request.recv(1024).strip()
         if len(s) > 0:
-            self.request.send(str(cmddsp.onecmd(s))+"\n")
+            self.request.send((cmddsp.onecmd(s.decode())+"\n").encode())
 
 if __name__ == "__main__":
     cmddsp = CommandDispatcher()
-    server = SocketServer.ThreadingTCPServer(MAGIC_CONNECTION, MagicHandler)
+    server = socketserver.ThreadingTCPServer(MAGIC_CONNECTION, MagicHandler)
     server.serve_forever()
 
 
